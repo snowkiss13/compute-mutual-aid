@@ -29,7 +29,13 @@ DB_PATH = os.environ.get("COMPUTE_POOL_DB", os.path.join(os.path.dirname(__file_
 HOST = os.environ.get("COMPUTE_POOL_HOST", "127.0.0.1")
 PORT = int(os.environ.get("COMPUTE_POOL_PORT", "8787"))
 
-INITIAL_CREDITS = 10   # 新規アカウントへの初期付与（これがあるので誰でも即開始できる）
+# 新規アカウントへの初期付与。
+# ローカル/信頼グループでは 10 で即開始できて便利だが、
+# ★公開デプロイでは必ず 0 にすること★（COMPUTE_POOL_INITIAL_CREDITS=0）。
+# 自己申告のaccount IDに無料クレジットを配ると、偽アカ量産(Sybil)で
+# claudeバックエンドの実費/枠を盗まれる。初期0なら「先に提供して稼がないと使えない」
+# 構造になり、無限偽アカ攻撃が無効化される。
+INITIAL_CREDITS = int(os.environ.get("COMPUTE_POOL_INITIAL_CREDITS", "10"))
 JOB_COST = 1           # ジョブ投稿コスト（requester から引く）
 JOB_REWARD = 1         # ジョブ完了報酬（provider に与える）
 
