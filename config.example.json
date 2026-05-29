@@ -1,0 +1,12 @@
+{
+  "coordinator_url": "http://127.0.0.1:8787",
+  "auth_token": "dev-shared-token",
+  "account_id": "alice",
+  "provider": {
+    "backend": "ollama",
+    "model": "qwen3:4b",
+    "poll_interval": 2.0,
+    "_comment_backend": "echo=テスト / ollama=ローカルモデル(リスク0) / claude=自前APIキー(サブスク融通)",
+    "_comment_claude_key": "claudeバックエンドは環境変数 ANTHROPIC_API_KEY_POOL を使う。主の ~/.claude には触れない専用キーを推奨。"
+  }
+}

@@ -1,0 +1,13 @@
+# SQLite 状態ファイル
+pool.db
+*.db
+*-wal
+*-shm
+
+# 実設定（トークン等。example のみコミット）
+config.json
+.env
+
+# Python
+__pycache__/
+*.pyc
