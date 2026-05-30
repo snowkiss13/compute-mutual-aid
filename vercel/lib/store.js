@@ -21,6 +21,14 @@ export function isClaudeModel(model) {
   return /^claude/i.test(model || "");
 }
 
+export function tier(model) {
+  return isClaudeModel(model) ? "premium" : "open";
+}
+
+export function accountKey(account, creditTier = "open") {
+  return `acct:${account}:${creditTier}`;
+}
+
 // claude系ジョブを投稿してよい requester の許可リスト（カンマ区切り環境変数）。
 // 例: COMPUTE_POOL_CLAUDE_ALLOWLIST="alice,bob"
 export function claudeAllowlist() {

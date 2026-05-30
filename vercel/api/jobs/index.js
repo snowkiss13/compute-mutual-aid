@@ -1,6 +1,13 @@
 // POST /api/jobs — requester がジョブ投稿。
 import { randomUUID } from "crypto";
-import { redis, COST, isClaudeModel, claudeAllowlist } from "../../lib/store.js";
+import {
+  redis,
+  COST,
+  isClaudeModel,
+  claudeAllowlist,
+  tier,
+  accountKey,
+} from "../../lib/store.js";
 import { authOk } from "../../lib/auth.js";
 
 const RATE_LIMIT_SCRIPT = `
@@ -11,9 +18,34 @@ end
 return current
 `;
 
+const DEBIT_SCRIPT = `
+local bucket_key = KEYS[1]
+local legacy_key = KEYS[2]
+local credit_tier = ARGV[1]
+local cost = ARGV[2]
+local debit_key = bucket_key
+if credit_tier == "open" and redis.call("EXISTS", bucket_key) == 0 and redis.call("EXISTS", legacy_key) == 1 then
+  debit_key = legacy_key
+end
+local bal = redis.call("DECRBY", debit_key, cost)
+if bal < 0 then
+  redis.call("INCRBY", debit_key, cost)
+end
+return bal
+`;
+
 function rateLimitPerMinute() {
   const n = Number(process.env.COMPUTE_POOL_RATE_PER_MIN || 30);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 30;
+}
+
+async function debitCredits(account, creditTier) {
+  const bal = Number(await redis.eval(
+    DEBIT_SCRIPT,
+    [accountKey(account, creditTier), `acct:${account}`],
+    [creditTier, String(COST)],
+  ));
+  return bal;
 }
 
 async function checkRateLimit(account) {
@@ -50,10 +82,11 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: "rate limit exceeded", retry_after: rate.retryAfter });
   }
 
-  // atomic: まず引いてから負残高ならロールバック（read-modify-write レース回避）。
-  const bal = await redis.decrby(`acct:${account}`, COST);
+  const creditTier = tier(model);
+
+  // atomic: 対象tierからまず引き、負残高ならLua内でロールバック。
+  const bal = await debitCredits(account, creditTier);
   if (bal < 0) {
-    await redis.incrby(`acct:${account}`, COST);
     return res.status(402).json({ error: "insufficient credits", credits: bal + COST });
   }
 
@@ -62,6 +95,7 @@ export default async function handler(req, res) {
     id,
     model,
     prompt,
+    tier: creditTier,
     status: "pending",
     requester: account,
     provider: "",

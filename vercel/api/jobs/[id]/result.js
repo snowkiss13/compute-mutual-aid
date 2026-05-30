@@ -1,5 +1,5 @@
 // POST /api/jobs/:id/result — provider が結果を提出し、報酬を受け取る。
-import { redis, REWARD } from "../../../lib/store.js";
+import { redis, REWARD, tier, accountKey } from "../../../lib/store.js";
 import { authOk } from "../../../lib/auth.js";
 
 export default async function handler(req, res) {
@@ -22,6 +22,7 @@ export default async function handler(req, res) {
   }
 
   await redis.hset(`job:${id}`, { status: "done", result, done_at: Date.now() });
-  const credits = await redis.incrby(`acct:${account}`, REWARD);
-  return res.status(200).json({ ok: true, credits });
+  const creditTier = job.tier || tier(job.model);
+  const credits = await redis.incrby(accountKey(account, creditTier), REWARD);
+  return res.status(200).json({ ok: true, credits, tier: creditTier });
 }
