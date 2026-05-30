@@ -41,7 +41,7 @@
     "open": ["echo", "llama3", "qwen2.5", "<any-ollama-tag>"],
     "allowlisted_only": ["claude-*"]
   },
-  "reference_client": "https://github.com/ (Python provider.py / requester.py in the project repo)",
+  "reference_client": "https://github.com/snowkiss13/compute-mutual-aid (Python provider.py / requester.py, Node MCP server in mcp/)",
   "contact": "operator: snowkiss13",
   "updated": "2026-05-30"
 }
