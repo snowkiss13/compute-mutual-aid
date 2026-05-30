@@ -1,15 +1,16 @@
 // POST /api/jobs/:id/result — provider が結果を提出し、報酬を受け取る。
 import { redis, REWARD, tier, accountKey } from "../../../lib/store.js";
-import { authOk } from "../../../lib/auth.js";
+import { resolveAccount } from "../../../lib/auth.js";
 
 export default async function handler(req, res) {
-  if (!authOk(req)) return res.status(401).json({ error: "unauthorized" });
   if (req.method !== "POST") return res.status(404).json({ error: "not found" });
 
   const { id } = req.query;
-  const { result, account } = req.body || {};
-  if (result == null || !account) {
-    return res.status(400).json({ error: "result and account are required" });
+  const { result, account: explicitAccount } = req.body || {};
+  const account = await resolveAccount(req, explicitAccount);
+  if (!account) return res.status(401).json({ error: "unauthorized" });
+  if (result == null) {
+    return res.status(400).json({ error: "result is required" });
   }
 
   const job = await redis.hgetall(`job:${id}`);

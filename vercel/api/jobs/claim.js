@@ -1,13 +1,11 @@
 // GET /api/jobs/claim?account=&model= — provider が pending ジョブを1件取得。
 import { redis } from "../../lib/store.js";
-import { authOk } from "../../lib/auth.js";
+import { resolveAccount } from "../../lib/auth.js";
 
 export default async function handler(req, res) {
-  if (!authOk(req)) return res.status(401).json({ error: "unauthorized" });
-
-  const provider = req.query.account;
+  const provider = await resolveAccount(req, req.query.account);
   const model = req.query.model;
-  if (!provider) return res.status(400).json({ error: "account query param required" });
+  if (!provider) return res.status(401).json({ error: "unauthorized" });
   if (!model) return res.status(400).json({ error: "model query param required" });
 
   // atomic pop（select-then-update のレースを避ける）。
