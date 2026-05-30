@@ -13,8 +13,10 @@
 | 2 | arbitrage防御 | echo/ollama由来creditをclaude等高コストへ移転不可（model/provider別bucket） | Codex | ✅完了(本番実証 open→claude=402/premium=200) |
 | 3 | OpenAI互換ゲートウェイ | `/v1/chat/completions`で既存SDK/ツールから直叩き→採用障壁↓ | Codex | ✅完了(本番実証 実provider経由choices返却) |
 | 4 | MCPサーバ公開 | エージェントがネイティブに発見・利用できる「正しい形」 | Codex | ✅完了(MCP e2e実証: compute_complete実provider成功) |
-| 5 | account登録/reputation | 濫用耐性の成熟（自己申告ID→検証・評価） | Codex | 設計待ち |
+| 5 | 身元束縛(per-account key) | ★security核心。account詐称・クレジット窃取・claudeガード破りを封じる | Codex | ✅完了(本番なりすまし実証クリア) |
+| 5.1 | register rate-limit | /api/register の storage-spam(0creditキー量産)抑止 | Codex | 未着手(優先低・非ブロッカー) |
 | 6 | E2E暗号化 | coordinatorにプロンプト/結果を平文で見せない | Codex | 設計待ち |
+| - | reputation | provider成功率/遅延の評価・claim優先度 | Codex | 構想 |
 
 ## 直列実装規約（Codexへ毎回明示）
 変更最小 / 関係ないファイル触らない / 不要依存追加しない / 既存挙動壊さない / 不確実点はリスク明記 / 差分要点3行で返す。

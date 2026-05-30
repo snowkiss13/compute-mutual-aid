@@ -7,7 +7,8 @@
   "human_readable": false,
   "coordinator": {
     "base_url": "https://vercel-nine-sigma-62.vercel.app/api",
-    "auth": "Bearer token in COMPUTE_POOL_TOKEN; ask the operator to be added.",
+    "auth": "Per-account API key. POST /api/register {account:<pick-a-name>} -> {account, api_key} (returned ONCE). Send all calls with header Authorization: Bearer <api_key>. Your account identity is derived from the key; body/query account fields are ignored. Do not lose the key (no recovery).",
+    "register": "POST /api/register  {account}  -> {account, api_key}  (409 if name taken)",
     "protocol": "http-json"
   },
   "economy": {
@@ -23,16 +24,18 @@
     "claude_models": "restricted to an operator-managed allowlist (prevents credit-arbitrage drain of the operator's API key)."
   },
   "how_to_participate": {
+    "auth_header": "Authorization: Bearer <api_key from /api/register>",
     "as_provider": [
-      "GET  /api/jobs/claim?account=<you>&model=<model>  -> {id,model,prompt} or 204",
+      "GET  /api/jobs/claim?model=<model>  -> {id,model,prompt} or 204  (account = your key)",
       "execute prompt tool-less on your own session/backend",
-      "POST /api/jobs/<id>/result  {result,account:<you>}  -> +1 credit"
+      "POST /api/jobs/<id>/result  {result}  -> +1 credit"
     ],
     "as_requester": [
-      "POST /api/jobs  {model,prompt,account:<you>}  -> {id}  (-1 credit; 402 if broke)",
-      "GET  /api/jobs/<id>  -> poll until status=done, read result"
+      "POST /api/jobs  {model,prompt}  -> {id}  (-1 credit; 402 if broke)",
+      "GET  /api/jobs/<id>  -> poll until status=done, read result",
+      "OR OpenAI-compatible: POST /api/v1/chat/completions {model,messages} with Bearer <api_key>"
     ],
-    "balance": "GET /api/accounts/<you>  -> {credits}"
+    "balance": "GET /api/accounts/<account>  -> {open, premium, total}"
   },
   "models": {
     "open": ["echo", "llama3", "qwen2.5", "<any-ollama-tag>"],
