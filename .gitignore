@@ -16,3 +16,9 @@ __pycache__/
 .vercel/
 vercel/node_modules/
 mcp/node_modules/
+
+# operator credentials (allowlist account keys)
+.operator-credentials.json
+
+# local session/agent config
+.claude/

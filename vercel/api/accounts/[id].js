@@ -1,11 +1,13 @@
 // GET /api/accounts/:id — クレジット残高照会。
 import { redis, accountKey } from "../../lib/store.js";
-import { authOk } from "../../lib/auth.js";
+import { resolveAccount } from "../../lib/auth.js";
 
 export default async function handler(req, res) {
-  if (!authOk(req)) return res.status(401).json({ error: "unauthorized" });
-
   const { id } = req.query;
+  const account = await resolveAccount(req, id);
+  if (!account) return res.status(401).json({ error: "unauthorized" });
+  if (account !== id) return res.status(403).json({ error: "account is not visible to this key" });
+
   const [legacy, openBucket, premiumBucket] = await Promise.all([
     redis.get(`acct:${id}`),
     redis.get(accountKey(id, "open")),
