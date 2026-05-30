@@ -1,5 +1,9 @@
 # Lolipop 配置物（AI向け discovery）
 
+> ⚠️ **公開保留中（2026-05-30）**: P5（per-account APIキー身元束縛）が本番に入るまで、この manifest を公開アップロードしないこと。
+> 現状は `account` が未認証のため、manifest 公開＝トークン拡散＝なりすまし可能になる。詳細はプロジェクト README のセキュリティ状態節。
+
+
 Vercel = 動的コーディネータ（台帳・ジョブ）。Lolipop = 静的な「AI向け案内板」。
 
 ## 中身
