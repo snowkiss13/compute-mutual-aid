@@ -12,7 +12,7 @@
 | 1 | rate-limit | ジョブspam DoS防止（初期0でもRedis/queue枯渇） | Codex | ✅完了(本番実証30→429) |
 | 2 | arbitrage防御 | echo/ollama由来creditをclaude等高コストへ移転不可（model/provider別bucket） | Codex | ✅完了(本番実証 open→claude=402/premium=200) |
 | 3 | OpenAI互換ゲートウェイ | `/v1/chat/completions`で既存SDK/ツールから直叩き→採用障壁↓ | Codex | ✅完了(本番実証 実provider経由choices返却) |
-| 4 | MCPサーバ公開 | エージェントがネイティブに発見・利用できる「正しい形」 | Codex | **委譲予定** |
+| 4 | MCPサーバ公開 | エージェントがネイティブに発見・利用できる「正しい形」 | Codex | ✅完了(MCP e2e実証: compute_complete実provider成功) |
 | 5 | account登録/reputation | 濫用耐性の成熟（自己申告ID→検証・評価） | Codex | 設計待ち |
 | 6 | E2E暗号化 | coordinatorにプロンプト/結果を平文で見せない | Codex | 設計待ち |
 
