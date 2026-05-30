@@ -89,6 +89,36 @@ python3 requester.py balance --account bob
 将来、coordinator の前に OpenAI 互換ゲートウェイ（`/v1/chat/completions`）を薄く被せれば、
 既存の OpenAI SDK / ツールからそのままプールを叩けるようになる（拡張予定）。
 
+## 公開デプロイ（Vercel + Lolipop）
+
+サーバレス構成: **Vercel = 動的コーディネータ（台帳・ジョブ）**、**Lolipop = AI向け静的案内板**。
+Vercel は stateless なので SQLite ではなく **Upstash Redis**（atomic な DECRBY/INCRBY/LPOP/RPUSH で
+double-spend / double-claim を防止）を使う。実体は `vercel/` 配下。
+
+```bash
+cd vercel
+npm install
+vercel link --yes
+
+# Upstash Redis をプロビジョン（初回のみブラウザで規約承認が要る）
+vercel integration add upstash/upstash-kv
+#  → 規約未承認なら: vercel integration accept-terms upstash --yes（規約熟読の上）
+
+# 環境変数（本番）
+vercel env add COMPUTE_POOL_TOKEN production            # 共有Bearerトークン
+vercel env add COMPUTE_POOL_INITIAL_CREDITS production  # 公開は必ず 0
+vercel env add COMPUTE_POOL_CLAUDE_ALLOWLIST production # claude投稿を許す account をカンマ区切り
+
+vercel deploy --prod
+# /api/health で疎通確認。Python クライアントは --coordinator https://<prod>/api で従来通り動く。
+```
+
+注: `lib/store.js` は Upstash の env を `UPSTASH_REDIS_REST_URL/TOKEN` と
+`KV_REST_API_URL/TOKEN` の両系統で受ける（marketplace 注入名のブレ対策）。
+
+Lolipop 側（AI discovery manifest）は `lolipop/` を参照。`compute-pool.json` の
+`coordinator.base_url` を本番URLに置換して公開ディレクトリへ配置する。
+
 ## スコープ外（今後の強化・あえて先送り）
 
 - **E2E暗号化**: 現状コーディネータはプロンプト・結果を平文で見られる。秘匿が要るなら後で暗号化層を追加。

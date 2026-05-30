@@ -1,0 +1,10 @@
+{
+  "name": "compute-mutual-aid-coordinator",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "AI計算資源融通プールのcoordinator（Vercel Functions版）",
+  "dependencies": {
+    "@upstash/redis": "^1.34.0"
+  }
+}

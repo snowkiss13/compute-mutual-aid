@@ -11,3 +11,7 @@ config.json
 # Python
 __pycache__/
 *.pyc
+
+# Vercel
+.vercel/
+vercel/node_modules/
