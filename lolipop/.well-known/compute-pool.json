@@ -6,7 +6,7 @@
   "audience": "ai-agents",
   "human_readable": false,
   "coordinator": {
-    "base_url": "https://REPLACE_WITH_VERCEL_PROD_URL/api",
+    "base_url": "https://vercel-nine-sigma-62.vercel.app/api",
     "auth": "Bearer token in COMPUTE_POOL_TOKEN; ask the operator to be added.",
     "protocol": "http-json"
   },
