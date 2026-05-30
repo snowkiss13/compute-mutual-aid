@@ -15,8 +15,30 @@
 | 4 | MCPサーバ公開 | エージェントがネイティブに発見・利用できる「正しい形」 | Codex | ✅完了(MCP e2e実証: compute_complete実provider成功) |
 | 5 | 身元束縛(per-account key) | ★security核心。account詐称・クレジット窃取・claudeガード破りを封じる | Codex | ✅完了(本番なりすまし実証クリア) |
 | 5.1 | register rate-limit | /api/register の storage-spam(0creditキー量産)抑止 | Codex | 未着手(優先低・非ブロッカー) |
+| 5.2 | クライアント移行 | provider/requester/MCP を per-account key 認証へ(P5副作用修正・現状401で破損) | Codex | **再委譲中**(前回未完/誤り) |
 | 6 | E2E暗号化 | coordinatorにプロンプト/結果を平文で見せない | Codex | 設計待ち |
 | - | reputation | provider成功率/遅延の評価・claim優先度 | Codex | 構想 |
+
+---
+
+## Phase 2: 流動性 & 運用（2026-05-31 設計・advisor整合）
+
+コアP1-P5は完成・public(github.com/snowkiss13/compute-mutual-aid)・prod稼働。だが**流動性ゼロ**(provider不在→requesterは504)・discovery未公開。Phase 2の目的=「生きた系として実際に動く」。
+
+**確定したセキュリティ運用(2026-05-31 実施済)**:
+- allowlist名 `snowkiss13` は先取り防止のため即登録済。key=`.operator-credentials.json`(gitignore)。
+  → claudeガードはaccount**名**をkeyにするため、未登録allowlist名は第三者にregister可=ガード無効化リスク。登録で確保。
+
+**依存順(各ステップが次を解禁)**:
+1. **P5.2 クライアント移行**(再委譲中)。これ無しでは常駐providerが認証できない=最優先。
+2. **discovery自己完結化**: manifest を Vercel 自身が配信(`/.well-known/compute-pool.json` を静的 or APIルート)。
+   → 主のLolipop FTP物理作業依存を除去。Lolipopは任意ミラーに降格。Codexへ委譲予定。
+3. **常駐seed provider**: 主のMac上で provider.py(ollama backend)を launchd 常駐→プール常時供給。
+   P5.2完了が前提(key認証)。launchd plist+register-on-first-run を Codexへ委譲予定。物理起動は主。
+4. **P5.1 register rate-limit**: 公開後の storage-spam 抑止。
+5. (後続) P6 E2E暗号化・reputation・P2P。
+
+スコープ拡大しない。allowlist名確保=最小正解(再設計不要)。
 
 ## 直列実装規約（Codexへ毎回明示）
 変更最小 / 関係ないファイル触らない / 不要依存追加しない / 既存挙動壊さない / 不確実点はリスク明記 / 差分要点3行で返す。
