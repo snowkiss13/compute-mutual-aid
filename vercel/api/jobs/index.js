@@ -3,6 +3,30 @@ import { randomUUID } from "crypto";
 import { redis, COST, isClaudeModel, claudeAllowlist } from "../../lib/store.js";
 import { authOk } from "../../lib/auth.js";
 
+const RATE_LIMIT_SCRIPT = `
+local current = redis.call("INCR", KEYS[1])
+if current == 1 then
+  redis.call("EXPIRE", KEYS[1], ARGV[1])
+end
+return current
+`;
+
+function rateLimitPerMinute() {
+  const n = Number(process.env.COMPUTE_POOL_RATE_PER_MIN || 30);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 30;
+}
+
+async function checkRateLimit(account) {
+  const now = Date.now();
+  const bucket = Math.floor(now / 60000);
+  const limit = rateLimitPerMinute();
+  const count = Number(await redis.eval(RATE_LIMIT_SCRIPT, [`rl:${account}:${bucket}`], ["120"]));
+  return {
+    limited: count > limit,
+    retryAfter: 60 - Math.floor((now % 60000) / 1000),
+  };
+}
+
 export default async function handler(req, res) {
   if (!authOk(req)) return res.status(401).json({ error: "unauthorized" });
   if (req.method !== "POST") return res.status(404).json({ error: "not found" });
@@ -19,6 +43,11 @@ export default async function handler(req, res) {
     return res.status(403).json({
       error: "claude models are restricted to allowlisted accounts",
     });
+  }
+
+  const rate = await checkRateLimit(account);
+  if (rate.limited) {
+    return res.status(429).json({ error: "rate limit exceeded", retry_after: rate.retryAfter });
   }
 
   // atomic: まず引いてから負残高ならロールバック（read-modify-write レース回避）。
