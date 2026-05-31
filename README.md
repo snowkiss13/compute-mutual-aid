@@ -220,6 +220,31 @@ The MCP server in `mcp/` exposes the pool to agent clients:
 
 See [mcp/README.md](mcp/README.md) for configuration.
 
+## Always-on seed provider
+
+To keep the pool liquid, run a local Ollama provider on the operator Mac. The
+wrapper registers `snowkiss13-seed` if needed, stores the per-account API key in
+`~/.compute-mutual-aid/provider.key` with `0600` permissions, verifies Ollama,
+then execs `provider.py` against production.
+
+Manual smoke test:
+
+```bash
+ollama pull qwen3-coder:30b
+scripts/seed-provider.sh
+```
+
+Install as a LaunchAgent:
+
+```bash
+cp launchd/com.compute-mutual-aid.seed-provider.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.compute-mutual-aid.seed-provider.plist
+launchctl list | grep compute-mutual-aid
+```
+
+Use a lighter model by editing `COMPUTE_POOL_MODEL` in the plist, or by running
+the wrapper with `COMPUTE_POOL_MODEL=<ollama-tag>`.
+
 ## Credit model
 
 The prototype uses a deliberately simple ledger:

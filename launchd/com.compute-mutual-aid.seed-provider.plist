@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Install:
+    cp launchd/com.compute-mutual-aid.seed-provider.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.compute-mutual-aid.seed-provider.plist
+
+  Update ProgramArguments if this repository is checked out somewhere else.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.compute-mutual-aid.seed-provider</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/takahiko/AI/01_ACTIVE/compute-mutual-aid/scripts/seed-provider.sh</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+        <key>COMPUTE_POOL_URL</key>
+        <string>https://vercel-nine-sigma-62.vercel.app/api</string>
+        <key>COMPUTE_POOL_PROVIDER_ACCOUNT</key>
+        <string>snowkiss13-seed</string>
+        <key>COMPUTE_POOL_MODEL</key>
+        <string>qwen3-coder:30b</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/takahiko/Library/Logs/compute-mutual-aid-seed-provider.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/takahiko/Library/Logs/compute-mutual-aid-seed-provider.err.log</string>
+</dict>
+</plist>
