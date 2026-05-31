@@ -8,6 +8,8 @@ export default async function handler(req, res) {
   if (!provider) return res.status(401).json({ error: "unauthorized" });
   if (!model) return res.status(400).json({ error: "model query param required" });
 
+  await redis.setex(`live:${model}:${provider}`, 30, String(Date.now()));
+
   // atomic pop（select-then-update のレースを避ける）。
   const id = await redis.lpop(`queue:${model}`);
   if (!id) return res.status(204).end();

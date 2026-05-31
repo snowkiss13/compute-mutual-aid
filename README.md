@@ -226,6 +226,10 @@ The MCP server in `mcp/` exposes the pool to agent clients:
 
 See [mcp/README.md](mcp/README.md) for configuration.
 
+To see which models currently have live providers, call `/api/discovery` and
+read `live_models`. The static `/.well-known/compute-pool.json` remains a stable
+descriptor and intentionally does not include live state.
+
 ## Always-on seed provider
 
 To keep the pool liquid, run a local Ollama provider on the operator Mac. The
