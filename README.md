@@ -1,19 +1,25 @@
 # compute-mutual-aid
 
-An experimental compute pool for open-source maintainer automation.
+A local-first compute mutual-aid pool for open-source maintainer automation.
 
-`compute-mutual-aid` lets trusted maintainers route small AI jobs to a shared
-pool of explicitly registered providers without passing API keys, shell access,
-or local credentials through the coordinator. The project is designed for
-maintainer workflows such as issue triage, pull request review drafts, release
-note preparation, regression investigation, and other background tasks where a
-team wants a simple queue, an auditable credit ledger, and a safe provider
-execution boundary.
+`compute-mutual-aid` makes local compute the default supply: Ollama,
+llama.cpp, Apple Silicon models, self-owned GPUs, and other explicitly
+authorized backends can provide spare capacity to trusted agents and
+maintainers without handing API keys, shell access, or local credentials through
+the coordinator. The project is designed for maintainer workflows such as issue
+triage, pull request review drafts, release note preparation, regression
+investigation, and other background tasks where a team wants a simple queue, an
+auditable credit ledger, and a safe provider execution boundary.
+
+Paid API backends are opt-in and must use project-owned or explicitly
+authorized keys. This project does not resell, exchange, sublicense, or share
+personal subscriptions, program benefits, ChatGPT/Codex access, or OpenAI API
+credits as a third-party compute proxy.
 
 This repository is also a concrete proposal for the OpenAI Codex for Open
-Source program: API credits would be used only for eligible open-source
-maintainer workflows, not resold, exchanged, shared as a benefit, or exposed as
-a public proxy.
+Source program: any API credits would be used only for eligible open-source
+maintainer workflows with project-authorized automation, not as a transferable
+benefit or public proxy.
 
 ## Why this exists
 
