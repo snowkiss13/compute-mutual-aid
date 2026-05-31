@@ -32,8 +32,7 @@
 **依存順(各ステップが次を解禁)**:
 1. **P5.2 クライアント移行**(再委譲中)。これ無しでは常駐providerが認証できない=最優先。
 2. ✅**discovery自己完結化**(完了): Vercel が `/.well-known/compute-pool.json` + `/api/discovery` 配信。本番200・local-first整合。Lolipop任意ミラー降格。FTP物理依存除去。
-3. **常駐seed provider**(次): 主のMac上で provider.py(ollama backend)を launchd 常駐→プール常時供給。
-   P5.2完了済(key認証)。launchd plist+register-on-first-run を Codexへ委譲予定。物理起動(ollama+launchd load)は主。
+3. ✅**常駐seed provider**(完了): scripts/seed-provider.sh + launchd plist。本番e2e実証=実ジョブをollama qwen3-coder:30bがclaim→ローカル推論→結果返却(認証情報不通過)。**残: 主が launchctl load して永続常駐化**(手動実行は検証済)。
 4. **P5.1 register rate-limit**: 公開後の storage-spam 抑止。
 5. (後続) P6 E2E暗号化・reputation・P2P。
 
