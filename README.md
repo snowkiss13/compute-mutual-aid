@@ -97,6 +97,24 @@ the provider's machine.
 uses malicious prompts that ask for file deletion or credential reads and
 verifies that the provider returns text rather than granting tool access.
 
+## Confidentiality model
+
+- **Coordinator visibility:** The coordinator (operator-run Vercel + Redis) can
+  read prompts and results and is trusted by design. It stores only job
+  metadata, prompts, results, account IDs, and credit balances.
+- **Provider visibility:** Providers necessarily see prompt plaintext because
+  the provider is the compute that executes the job. Encryption cannot remove
+  this exposure, so do not put secrets, credentials, or sensitive personal data
+  in prompts.
+- **Transport:** All traffic between clients, the coordinator, and providers
+  uses HTTPS. There is intentionally no end-to-end encryption that hides
+  content from the coordinator, because the assigned provider must decrypt the
+  prompt in order to execute it.
+- **At-rest encryption (future):** Optional at-rest encryption with an
+  operator-held key may be added later. It would only defend against a raw
+  datastore leak and would not affect coordinator or provider read access during
+  normal operation.
+
 ## Compliance boundaries
 
 This repository is intentionally conservative about terms-of-service risk:
