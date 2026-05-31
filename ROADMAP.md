@@ -31,10 +31,9 @@
 
 **依存順(各ステップが次を解禁)**:
 1. **P5.2 クライアント移行**(再委譲中)。これ無しでは常駐providerが認証できない=最優先。
-2. **discovery自己完結化**: manifest を Vercel 自身が配信(`/.well-known/compute-pool.json` を静的 or APIルート)。
-   → 主のLolipop FTP物理作業依存を除去。Lolipopは任意ミラーに降格。Codexへ委譲予定。
-3. **常駐seed provider**: 主のMac上で provider.py(ollama backend)を launchd 常駐→プール常時供給。
-   P5.2完了が前提(key認証)。launchd plist+register-on-first-run を Codexへ委譲予定。物理起動は主。
+2. ✅**discovery自己完結化**(完了): Vercel が `/.well-known/compute-pool.json` + `/api/discovery` 配信。本番200・local-first整合。Lolipop任意ミラー降格。FTP物理依存除去。
+3. **常駐seed provider**(次): 主のMac上で provider.py(ollama backend)を launchd 常駐→プール常時供給。
+   P5.2完了済(key認証)。launchd plist+register-on-first-run を Codexへ委譲予定。物理起動(ollama+launchd load)は主。
 4. **P5.1 register rate-limit**: 公開後の storage-spam 抑止。
 5. (後続) P6 E2E暗号化・reputation・P2P。
 
