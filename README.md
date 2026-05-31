@@ -143,26 +143,30 @@ python3 coordinator.py
 Start a safe echo provider in another terminal:
 
 ```bash
-python3 provider.py --account alice --backend echo --model echo-model
+python3 provider.py --account alice --api-key <alice-api-key> --backend echo --model echo-model
 ```
 
 Submit a job:
 
 ```bash
-python3 requester.py complete --account bob --model echo-model --prompt "hello"
+python3 requester.py complete --account bob --api-key <bob-api-key> --model echo-model --prompt "hello"
 ```
 
 Check a balance:
 
 ```bash
-python3 requester.py balance --account bob
+python3 requester.py balance --account bob --api-key <bob-api-key>
 ```
 
 For local model experiments, run the provider with an Ollama model:
 
 ```bash
-python3 provider.py --account alice --backend ollama --model qwen3:4b
+python3 provider.py --account alice --api-key <alice-api-key> --backend ollama --model qwen3:4b
 ```
+
+If `--api-key` is omitted, the client calls `POST /api/register` for the given
+`--account` and prints the one-time API key. Save that key securely and pass it
+with `--api-key` or `COMPUTE_POOL_API_KEY` on future runs.
 
 ## Production-style deployment
 
@@ -195,7 +199,7 @@ Example shape:
 
 ```bash
 curl "$COMPUTE_POOL_URL/v1/chat/completions" \
-  -H "Authorization: Bearer $COMPUTE_POOL_TOKEN" \
+  -H "Authorization: Bearer $COMPUTE_POOL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "echo-model",

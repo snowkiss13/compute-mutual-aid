@@ -11,12 +11,14 @@ Provider daemon — 余った計算資源を提供し、クレジットを稼ぐ
 自分が忙しい時に他人へジョブを投げられる（互恵経済）。
 
 使い方:
-  python provider.py --account alice --backend ollama --model qwen3:4b
-  python provider.py --account alice --backend echo            # テスト
+  python provider.py --account alice --api-key <key> --backend ollama --model qwen3:4b
+  python provider.py --account alice --api-key <key> --backend echo            # テスト
 """
 
 import argparse
 import json
+import os
+import sys
 import time
 import urllib.request
 import urllib.error
@@ -24,10 +26,11 @@ import urllib.error
 import executor
 
 
-def _request(method, url, token, payload=None, timeout=130):
+def _request(method, url, api_key=None, payload=None, timeout=130):
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
     req = urllib.request.Request(url, data=data, method=method)
-    req.add_header("Authorization", f"Bearer {token}")
+    if api_key:
+        req.add_header("Authorization", f"Bearer {api_key}")
     if data is not None:
         req.add_header("Content-Type", "application/json")
     try:
@@ -40,10 +43,21 @@ def _request(method, url, token, payload=None, timeout=130):
         return 0, {"error": str(e)}
 
 
+def register_account(base, account):
+    status, body = _request("POST", f"{base}/register", payload={"account": account})
+    if status != 200:
+        raise RuntimeError(f"register failed {status}: {body}")
+    api_key = body["api_key"]
+    print("[provider] API key issued once. Save it securely and pass it with --api-key or COMPUTE_POOL_API_KEY.", file=sys.stderr)
+    print(f"[provider] account={body['account']} api_key={api_key}", file=sys.stderr)
+    return api_key
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--coordinator", default="http://127.0.0.1:8787")
-    ap.add_argument("--token", default="dev-shared-token")
+    ap.add_argument("--api-key", default=os.environ.get("COMPUTE_POOL_API_KEY", ""))
+    ap.add_argument("--token", default="", help=argparse.SUPPRESS)
     ap.add_argument("--account", required=True, help="自分のアカウントID")
     ap.add_argument("--backend", default="echo", choices=["echo", "ollama", "claude"])
     ap.add_argument("--model", default="echo-model", help="このproviderが処理するモデル名")
@@ -52,11 +66,18 @@ def main():
     args = ap.parse_args()
 
     base = args.coordinator.rstrip("/")
-    claim_url = f"{base}/jobs/claim?account={args.account}&model={args.model}"
+    api_key = args.api_key
+    if args.token and not api_key:
+        print("[provider] --token is deprecated and no longer works for shared credentials; using it as --api-key.", file=sys.stderr)
+        api_key = args.token
+    if not api_key:
+        api_key = register_account(base, args.account)
+
+    claim_url = f"{base}/jobs/claim?model={args.model}"
     print(f"[provider:{args.account}] backend={args.backend} model={args.model} → {base}")
 
     while True:
-        status, body = _request("GET", claim_url, args.token)
+        status, body = _request("GET", claim_url, api_key)
         if status == 204 or not body:
             if args.once:
                 print("[provider] no job, exiting (--once)")
@@ -77,8 +98,8 @@ def main():
             print(f"[provider] execution failed: {e}")
 
         rstatus, rbody = _request(
-            "POST", f"{base}/jobs/{job_id}/result", args.token,
-            payload={"result": result, "account": args.account},
+            "POST", f"{base}/jobs/{job_id}/result", api_key,
+            payload={"result": result},
         )
         if rstatus == 200:
             print(f"[provider] done {job_id}  credits={rbody.get('credits')}")

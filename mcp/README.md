@@ -12,12 +12,23 @@ npm install
 Required environment:
 
 ```sh
-export COMPUTE_POOL_TOKEN="your-pool-token"
-export COMPUTE_POOL_ACCOUNT="your-account"
+export COMPUTE_POOL_API_KEY="your-account-api-key"
+export COMPUTE_POOL_ACCOUNT="your-account" # only needed for compute_balance
 export COMPUTE_POOL_URL="https://vercel-nine-sigma-62.vercel.app/api"
 ```
 
 `COMPUTE_POOL_URL` is optional and defaults to production.
+
+Get an API key once:
+
+```sh
+curl "$COMPUTE_POOL_URL/register" \
+  -H "Content-Type: application/json" \
+  -d '{"account":"your-account"}'
+```
+
+The returned `api_key` is only shown once. Save it securely and use it as
+`COMPUTE_POOL_API_KEY`.
 
 ## MCP Client Config
 
@@ -30,7 +41,7 @@ Example `.mcp.json` entry:
       "command": "npx",
       "args": ["-y", "/absolute/path/to/compute-mutual-aid/mcp"],
       "env": {
-        "COMPUTE_POOL_TOKEN": "your-pool-token",
+        "COMPUTE_POOL_API_KEY": "your-account-api-key",
         "COMPUTE_POOL_ACCOUNT": "your-account",
         "COMPUTE_POOL_URL": "https://vercel-nine-sigma-62.vercel.app/api"
       }
@@ -48,7 +59,7 @@ For local development from this repository:
       "command": "node",
       "args": ["/absolute/path/to/compute-mutual-aid/mcp/src/index.js"],
       "env": {
-        "COMPUTE_POOL_TOKEN": "your-pool-token",
+        "COMPUTE_POOL_API_KEY": "your-account-api-key",
         "COMPUTE_POOL_ACCOUNT": "your-account"
       }
     }

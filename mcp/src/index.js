@@ -9,11 +9,14 @@ import {
 const DEFAULT_BASE_URL = "https://vercel-nine-sigma-62.vercel.app/api";
 
 const baseUrl = (process.env.COMPUTE_POOL_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
-const token = process.env.COMPUTE_POOL_TOKEN || "";
+const apiKey = process.env.COMPUTE_POOL_API_KEY || "";
 const account = process.env.COMPUTE_POOL_ACCOUNT || "";
 
-function requireConfig() {
-  if (!token) throw new Error("COMPUTE_POOL_TOKEN is required");
+function requireApiKey() {
+  if (!apiKey) throw new Error("COMPUTE_POOL_API_KEY is required");
+}
+
+function requireAccount() {
   if (!account) throw new Error("COMPUTE_POOL_ACCOUNT is required");
 }
 
@@ -26,8 +29,6 @@ function requireString(args, name) {
 }
 
 async function requestJson(path, options = {}) {
-  requireConfig();
-
   const headers = {
     ...options.headers,
   };
@@ -54,14 +55,16 @@ async function requestJson(path, options = {}) {
 }
 
 function poolAuthHeaders() {
+  requireApiKey();
   return {
-    authorization: `Bearer ${token}`,
+    authorization: `Bearer ${apiKey}`,
   };
 }
 
 function openAiAuthHeaders() {
+  requireApiKey();
   return {
-    authorization: `Bearer ${token}:${account}`,
+    authorization: `Bearer ${apiKey}`,
   };
 }
 
@@ -180,6 +183,7 @@ async function callTool(name, args) {
       return textResult(body?.choices?.[0]?.message?.content || "");
     }
     case "compute_balance": {
+      requireAccount();
       const body = await requestJson(`/accounts/${encodeURIComponent(account)}`, {
         headers: poolAuthHeaders(),
       });
@@ -191,7 +195,7 @@ async function callTool(name, args) {
       const body = await requestJson("/jobs", {
         method: "POST",
         headers: poolAuthHeaders(),
-        body: JSON.stringify({ model, prompt, account }),
+        body: JSON.stringify({ model, prompt }),
       });
       return jsonResult(body);
     }
@@ -204,7 +208,7 @@ async function callTool(name, args) {
     }
     case "compute_claim": {
       const model = requireString(args, "model");
-      const query = new URLSearchParams({ model, account });
+      const query = new URLSearchParams({ model });
       const body = await requestJson(`/jobs/claim?${query.toString()}`, {
         headers: poolAuthHeaders(),
       });
@@ -216,7 +220,7 @@ async function callTool(name, args) {
       const body = await requestJson(`/jobs/${encodeURIComponent(jobId)}/result`, {
         method: "POST",
         headers: poolAuthHeaders(),
-        body: JSON.stringify({ result, account }),
+        body: JSON.stringify({ result }),
       });
       return jsonResult(body);
     }
