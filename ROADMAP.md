@@ -63,7 +63,13 @@ Phase2で「生きた系」に到達(発見自己完結・供給常駐可)。公
 | 3.2 | provider heartbeat + live models | providerが生存ping→discovery/manifestに「現在稼働中のmodel」を出す。requesterの504空振りを防ぐ | ✅完了(本番: 起動3秒でlive表示・停止35秒で消滅) |
 | 3.3 | stats/observability | GET /api/stats: queue深さ・登録数・稼働provider数。健全性可視化 | ✅完了(本番200・registered_accounts反映) |
 | 3.4 | 信頼性+reputation | claimed後未完jobのrequeue/timeout + provider成功/失敗計数・信頼表示 | ✅完了(本番: 120s回収・rep done1/timeout1・二重report409・Lua原子性検証) |
-| 3.5 | E2E暗号化(旧P6) | coordinatorにprompt/result平文を見せない | **設計中** |
+| 3.5 | 機密モデル(旧E2E暗号) | 機密性の扱いを明文化 | ✅判断完了(実装せず文書化。下記決定) |
+
+**3.5 決定: フルE2E暗号は実装しない(構造上不可能ゆえ文書化が正解・2026-05-31 advisor整合)**:
+- **provider秘匿は構造上不可能**: provider=計算主体ゆえ実行に平文prompt必須。いかなる鍵方式でも解決不能。「E2E暗号」はカテゴリーエラー。
+- coordinator(operator運用)はprompt/result可視=信頼前提。providerも平文可視=不可避。
+- 実装可能で価値ある唯一の薄片=at-rest暗号(operator鍵でRedis前に暗号化)だが、coordinatorが鍵保持ゆえ防御範囲は「Upstashダンプ流出」のみ→prototypeでは後回し。
+- 正しい緩和=「秘密情報をpromptに入れない」+HTTPS transport(既存)。READMEに機密モデルを明記する(コードでなく文書)。
 
 **3.4 設計メモ(Copilot調査で判明したギャップ反映)**:
 - 現状: 成功時のみ `job:done`+provider credit。**claimed後未完のjobは永久にclaimed放置=失敗/timeout追跡なし**(Copilot 2026-05-31調査)。
