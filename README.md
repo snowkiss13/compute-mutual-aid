@@ -230,6 +230,9 @@ To see which models currently have live providers, call `/api/discovery` and
 read `live_models`. The static `/.well-known/compute-pool.json` remains a stable
 descriptor and intentionally does not include live state.
 
+For unauthenticated aggregate health, call `/api/stats`; it returns queue depths,
+live provider counts, registered account count, and a timestamp.
+
 ## Always-on seed provider
 
 To keep the pool liquid, run a local Ollama provider on the operator Mac. The

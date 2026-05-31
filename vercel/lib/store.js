@@ -63,6 +63,31 @@ export function claudeAllowlist() {
     .filter(Boolean);
 }
 
+function modelFromLiveKey(key) {
+  const parts = key.split(":");
+  if (parts.length < 3 || parts[0] !== "live") return null;
+  return parts.slice(1, -1).join(":");
+}
+
+export async function liveModels() {
+  let cursor = "0";
+  const counts = {};
+
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, { match: "live:*", count: 100 });
+    cursor = String(nextCursor);
+    for (const key of keys) {
+      const model = modelFromLiveKey(key);
+      if (model) counts[model] = (counts[model] || 0) + 1;
+    }
+  } while (cursor !== "0");
+
+  return {
+    counts,
+    models: Object.keys(counts).sort(),
+  };
+}
+
 function rateLimitPerMinute() {
   const n = Number(process.env.COMPUTE_POOL_RATE_PER_MIN || 30);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 30;
