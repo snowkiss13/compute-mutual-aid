@@ -15,7 +15,7 @@
 | 4 | MCPサーバ公開 | エージェントがネイティブに発見・利用できる「正しい形」 | Codex | ✅完了(MCP e2e実証: compute_complete実provider成功) |
 | 5 | 身元束縛(per-account key) | ★security核心。account詐称・クレジット窃取・claudeガード破りを封じる | Codex | ✅完了(本番なりすまし実証クリア) |
 | 5.1 | register rate-limit | /api/register の storage-spam(0creditキー量産)抑止 | Codex | 未着手(優先低・非ブロッカー) |
-| 5.2 | クライアント移行 | provider/requester/MCP を per-account key 認証へ(P5副作用修正・現状401で破損) | Codex | **再委譲中**(前回未完/誤り) |
+| 5.2 | クライアント移行 | provider/requester/MCP を per-account key 認証へ(P5副作用修正) | Codex | ✅完了(本番e2e: provider/requester/GW全経路で結果返却・grep共有token0) |
 | 6 | E2E暗号化 | coordinatorにプロンプト/結果を平文で見せない | Codex | 設計待ち |
 | - | reputation | provider成功率/遅延の評価・claim優先度 | Codex | 構想 |
 
