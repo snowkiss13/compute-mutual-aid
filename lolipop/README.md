@@ -1,5 +1,7 @@
 # Lolipop 配置物（AI向け discovery）
 
+> 正本は Vercel 配信の `https://<prod>/.well-known/compute-pool.json`。Lolipop は任意ミラー。
+
 > ✅ **公開可（2026-05-30・P5反映）**: per-account APIキー身元束縛が本番稼働。manifest は共有トークンではなく `/api/register` での自己発行キーを案内するため、公開してもなりすまし不可。アップロード手順は下記。
 
 
