@@ -231,7 +231,10 @@ read `live_models`. The static `/.well-known/compute-pool.json` remains a stable
 descriptor and intentionally does not include live state.
 
 For unauthenticated aggregate health, call `/api/stats`; it returns queue depths,
-live provider counts, registered account count, and a timestamp.
+live provider counts, registered account count, provider reputation counters
+(`done` / `timeout`), and a timestamp. Claimed jobs that are not completed within
+`COMPUTE_POOL_CLAIM_TIMEOUT_SEC` (default 120 seconds) are returned to the queue
+for another provider.
 
 ## Always-on seed provider
 

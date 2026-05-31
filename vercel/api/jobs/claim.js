@@ -1,5 +1,5 @@
 // GET /api/jobs/claim?account=&model= — provider が pending ジョブを1件取得。
-import { redis } from "../../lib/store.js";
+import { markClaimed, reclaimExpiredClaims, redis } from "../../lib/store.js";
 import { resolveAccount } from "../../lib/auth.js";
 
 export default async function handler(req, res) {
@@ -9,6 +9,7 @@ export default async function handler(req, res) {
   if (!model) return res.status(400).json({ error: "model query param required" });
 
   await redis.setex(`live:${model}:${provider}`, 30, String(Date.now()));
+  await reclaimExpiredClaims(model);
 
   // atomic pop（select-then-update のレースを避ける）。
   const id = await redis.lpop(`queue:${model}`);
@@ -23,10 +24,6 @@ export default async function handler(req, res) {
     return res.status(204).end();
   }
 
-  await redis.hset(`job:${id}`, {
-    status: "claimed",
-    provider,
-    claimed_at: Date.now(),
-  });
+  await markClaimed(model, id, provider);
   return res.status(200).json({ id: job.id, model: job.model, prompt: job.prompt });
 }

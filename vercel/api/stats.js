@@ -1,5 +1,5 @@
 // GET /api/stats — unauthenticated aggregate pool health.
-import { liveModels, redis } from "../lib/store.js";
+import { liveModels, redis, reputationStats } from "../lib/store.js";
 
 function modelFromQueueKey(key) {
   if (!key.startsWith("queue:")) return null;
@@ -38,10 +38,11 @@ async function countKeys(match) {
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(404).json({ error: "not found" });
 
-  const [queues, live, registeredAccounts] = await Promise.all([
+  const [queues, live, registeredAccounts, reputation] = await Promise.all([
     queueDepths(),
     liveModels(),
     countKeys("acct-registered:*"),
+    reputationStats(),
   ]);
 
   res.setHeader("Cache-Control", "no-store");
@@ -49,6 +50,7 @@ export default async function handler(req, res) {
     queues,
     live_providers: live,
     registered_accounts: registeredAccounts,
+    reputation,
     ts: Date.now(),
   });
 }

@@ -41,6 +41,67 @@ end
 return bal
 `;
 
+const RECLAIM_EXPIRED_CLAIMS_SCRIPT = `
+local claimed_key = KEYS[1]
+local queue_key = KEYS[2]
+local now = ARGV[1]
+local ids = redis.call("ZRANGEBYSCORE", claimed_key, "-inf", now)
+local reclaimed = 0
+for _, id in ipairs(ids) do
+  if redis.call("ZREM", claimed_key, id) == 1 then
+    local job_key = "job:" .. id
+    local status = redis.call("HGET", job_key, "status")
+    local provider = redis.call("HGET", job_key, "provider")
+    if status == "claimed" then
+      redis.call("HSET", job_key, "status", "pending", "provider", "")
+      redis.call("RPUSH", queue_key, id)
+      if provider and provider ~= "" then
+        redis.call("INCR", "rep:" .. provider .. ":timeout")
+      end
+      reclaimed = reclaimed + 1
+    end
+  end
+end
+return reclaimed
+`;
+
+const COMPLETE_RESULT_SCRIPT = `
+local job_key = KEYS[1]
+local claimed_key = KEYS[2]
+local credit_key = KEYS[3]
+local rep_key = KEYS[4]
+local id = ARGV[1]
+local account = ARGV[2]
+local result = ARGV[3]
+local now = ARGV[4]
+local reward = ARGV[5]
+
+if redis.call("HGET", job_key, "status") ~= "claimed" then
+  return {0, -1}
+end
+if redis.call("HGET", job_key, "provider") ~= account then
+  return {0, -2}
+end
+
+redis.call("HSET", job_key, "status", "done", "result", result, "done_at", now)
+redis.call("ZREM", claimed_key, id)
+redis.call("INCR", rep_key)
+local credits = redis.call("INCRBY", credit_key, reward)
+return {1, credits}
+`;
+
+const MARK_CLAIMED_SCRIPT = `
+local job_key = KEYS[1]
+local claimed_key = KEYS[2]
+local id = ARGV[1]
+local provider = ARGV[2]
+local now = ARGV[3]
+local deadline = ARGV[4]
+redis.call("HSET", job_key, "status", "claimed", "provider", provider, "claimed_at", now)
+redis.call("ZADD", claimed_key, deadline, id)
+return 1
+`;
+
 // claude系モデルかどうか。これらは金銭流出点なので requester allowlist で守る。
 export function isClaudeModel(model) {
   return /^claude/i.test(model || "");
@@ -86,6 +147,59 @@ export async function liveModels() {
     counts,
     models: Object.keys(counts).sort(),
   };
+}
+
+export function claimTimeoutMs() {
+  const n = Number(process.env.COMPUTE_POOL_CLAIM_TIMEOUT_SEC || 120);
+  const seconds = Number.isFinite(n) && n > 0 ? Math.floor(n) : 120;
+  return seconds * 1000;
+}
+
+export async function reclaimExpiredClaims(model, now = Date.now()) {
+  return Number(await redis.eval(
+    RECLAIM_EXPIRED_CLAIMS_SCRIPT,
+    [`claimed:${model}`, `queue:${model}`],
+    [String(now)],
+  ));
+}
+
+export async function markClaimed(model, id, provider, now = Date.now()) {
+  await redis.eval(
+    MARK_CLAIMED_SCRIPT,
+    [`job:${id}`, `claimed:${model}`],
+    [id, provider, String(now), String(now + claimTimeoutMs())],
+  );
+}
+
+export async function completeJobResult({ id, model, account, result, creditTier }) {
+  const [ok, credits] = await redis.eval(
+    COMPLETE_RESULT_SCRIPT,
+    [`job:${id}`, `claimed:${model}`, accountKey(account, creditTier), `rep:${account}:done`],
+    [id, account, result, String(Date.now()), String(REWARD)],
+  );
+  return { ok: Number(ok), credits: Number(credits) };
+}
+
+export async function reputationStats() {
+  let cursor = "0";
+  const byAccount = {};
+
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, { match: "rep:*:*", count: 100 });
+    cursor = String(nextCursor);
+    for (const key of keys) {
+      const parts = key.split(":");
+      if (parts.length < 3) continue;
+      const metric = parts[parts.length - 1];
+      if (metric !== "done" && metric !== "timeout") continue;
+      const account = parts.slice(1, -1).join(":");
+      const value = Number(await redis.get(key) || 0);
+      byAccount[account] = byAccount[account] || { done: 0, timeout: 0 };
+      byAccount[account][metric] = value;
+    }
+  } while (cursor !== "0");
+
+  return byAccount;
 }
 
 function rateLimitPerMinute() {
