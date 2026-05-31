@@ -40,6 +40,21 @@
 
 スコープ拡大しない。allowlist名確保=最小正解(再設計不要)。
 
+## 方針決定: local-first ピボット & P2P判断（2026-05-31・主GO）
+
+**ピボット**: 「API/サブスク枠の融通」→「ローカル計算資源の融通」を主役に。OpenAI Codex for Open Source program 申請と整合（benefit/サブスク再提供をしない）。READMEを申請向けに再構成済。
+
+**P2P判断: 完全P2Pは採らない。現行=hybrid relay queue が最適解。**
+- クレジット台帳は二重支払防止で中央集権必須→「完全P2P」は原理的に不可能。論点は実質 payload を peer 直送するか否かのみ。
+- 現状は小さいテキストjob→Vercel中継で十分。P2P直送が効くのは大payload(画像/大ファイル)のみ→現状メリット無し。
+- 現構成(Vercel/Redis=control plane: discovery/ledger/auth/queue、provider=ローカル実行、prompt+resultのみ通過)を維持。新規実装不要。
+
+**local-first 実体（コード変更小）**:
+- ollama/llama.cpp/Apple Silicon backend を既定・主役に。
+- 有料API backend(claude等)は opt-in かつ project-owned/authorized key 限定。サブスク/benefit再提供しない。
+
+**将来オプション（需要が出たら）**: ①coordinator-assisted P2P（中央=discovery/ledger/auth、大payloadのみpeer直送） ②libp2p/QUIC。今は着手しない。
+
 ## 直列実装規約（Codexへ毎回明示）
 変更最小 / 関係ないファイル触らない / 不要依存追加しない / 既存挙動壊さない / 不確実点はリスク明記 / 差分要点3行で返す。
 

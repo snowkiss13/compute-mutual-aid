@@ -1,140 +1,251 @@
-# compute-mutual-aid — AI計算資源の融通プール
+# compute-mutual-aid
 
-AIエージェント同士が、余った計算資源（定額サブスクの空き枠・暇なローカルGPU）を
-**認証情報を一切渡さずに**貸し借りするための最小システム。
+An experimental compute pool for open-source maintainer automation.
 
-「お金の次の形 = 計算資源をうまく配分する仕組み」の最小実装。
-提供して稼いだクレジットで、自分が忙しい時に他人の枠を使う ＝ 互恵経済。
+`compute-mutual-aid` lets trusted maintainers route small AI jobs to a shared
+pool of explicitly registered providers without passing API keys, shell access,
+or local credentials through the coordinator. The project is designed for
+maintainer workflows such as issue triage, pull request review drafts, release
+note preparation, regression investigation, and other background tasks where a
+team wants a simple queue, an auditable credit ledger, and a safe provider
+execution boundary.
 
-> ## セキュリティ状態（2026-05-30・P5反映）
-> - **実行安全（tool-less・認証情報不通過）成立・堅牢。** 中核保証。
-> - **身元/クレジット保証 成立（P5）。** `POST /api/register` で account 毎の API キーを発行し、全 write はキー由来の認証済 account のみ使用（body/query の account は無視）。本番でなりすまし不能を実証（旧共有token→401・他人account詐称で残高不変・claude allowlist詐称→403）。
-> - claude allowlist・クレジット帰属・レート制限は認証済 identity に対して実効。
-> - **公開可。** manifest は登録フロー（/api/register でキー取得）を案内。共有トークンによる認証は廃止済。
-> - 残・軽微: `/api/register` 自体は無認証・無レート制限ゆえ 0-credit キー量産（storage spam）が可能（経済/身元害なし）。IP単位の register 制限は今後（P5.1）。
+This repository is also a concrete proposal for the OpenAI Codex for Open
+Source program: API credits would be used only for eligible open-source
+maintainer workflows, not resold, exchanged, shared as a benefit, or exposed as
+a public proxy.
 
-## 中心アイデア
+## Why this exists
 
-- **受注側（requester）はプールをAPIのように叩くだけ**で結果が返る。裏で誰かの計算資源が使われる。
-- **提供側（provider）は余った枠を提供してクレジットを稼ぐ**。それが提供側のメリット。
-- 暇な時に貢献して貯め、忙しい時に使う ＝ 定額料金の範囲内で資源を融通し合える。
+Open-source maintainers often have bursty work: a release week, a sudden issue
+wave, a pull request backlog, or a security review window. At the same time,
+contributors may have idle local compute or may be able to run narrow, bounded
+AI jobs for the project.
 
-## 安全性の要：なぜ認証情報が漏れないか
+This project explores a small "mutual aid" layer for that pattern:
 
-素朴に「他人のプロンプトを自分のエージェントで実行」すると、requester は実質
-provider のマシン上でシェルを握り、`~/.claude` の認証情報を盗める。これが最大の罠。
+- Requesters submit bounded text jobs through a REST API or OpenAI-compatible
+  `/v1/chat/completions` endpoint.
+- Providers claim jobs for models they explicitly opt into serving.
+- The coordinator tracks jobs and credits, but does not receive provider
+  credentials.
+- Providers run in a tool-less execution mode by default, so requester prompts
+  cannot access the provider's shell, files, MCP tools, or account secrets.
 
-本システムの防御は **構造** で行う（オプションではなく既定）:
+The goal is not to bypass service limits or pool personal subscriptions. The
+goal is to make maintainer automation safer, more observable, and easier to run
+with approved compute sources.
 
-1. **コーディネータは認証情報を一切扱わない。** プロンプト文字列・結果文字列・クレジット残高のみ。
-2. **provider は tool-less（ツール無し・テキスト補完のみ）で実行する。**
-   Bash もファイルアクセスも MCP も無い。`executor.py` はツールを定義・許可しない。
-   → 悪意あるプロンプトにできる最悪のことは「テキストを返す」だけ。
-3. **claude バックエンドは専用APIキー（`ANTHROPIC_API_KEY_POOL`）を使う。** 主の `~/.claude` には触れない。
+## Current status
 
-これは `test_e2e.py` で実証済み（ファイル削除・認証情報読取を要求する悪意プロンプトを投げても、
-カナリアファイルは無傷・結果はただのテキスト）。
+- Public prototype: https://github.com/snowkiss13/compute-mutual-aid
+- Production test deployment: https://vercel-nine-sigma-62.vercel.app
+- Coordinator: Vercel serverless functions plus Upstash Redis
+- Local coordinator: dependency-light Python implementation with SQLite
+- Client paths: Python CLI/library, OpenAI-compatible chat endpoint, MCP server
+- Auth model: per-account API keys from `POST /api/register`
+- Credit model: requesters spend credits, providers earn credits
+- Security posture: tool-less provider execution and no credential forwarding
 
-## 構成
+Known limitations are tracked in [ROADMAP.md](ROADMAP.md). The biggest remaining
+items are register rate limiting, end-to-end prompt/result encryption, provider
+reputation, and stronger production operations.
 
+## Program-fit use cases
+
+The intended Codex/OpenAI API-credit use is open-source maintenance, for example:
+
+- Drafting issue summaries and labels for repository maintainers.
+- Producing pull request review checklists before human review.
+- Running release-note and changelog preparation jobs.
+- Creating regression-investigation notes from logs, test output, and diffs.
+- Evaluating maintainer-agent workflows through the MCP server.
+- Testing OpenAI-compatible routing for project-owned automation.
+
+Program benefits, API credits, and ChatGPT/Codex access should remain personal
+or project-authorized according to the applicable terms. This project should not
+be used to sell, exchange, sublicense, or share OpenAI program benefits.
+
+## Safety model
+
+The main security problem is simple: if a requester can make a provider run
+arbitrary tools, the requester may be able to steal local credentials or modify
+the provider's machine.
+
+`compute-mutual-aid` avoids that by design:
+
+1. The coordinator only stores job metadata, prompts, results, account IDs, and
+   credit balances. It never stores provider model credentials.
+2. Providers use tool-less completion by default. `executor.py` does not expose
+   Bash, filesystem access, MCP tools, or arbitrary local actions to requester
+   prompts.
+3. Provider backends are opt-in. Local models such as Ollama are the safest
+   default; paid API backends should use project-owned or otherwise authorized
+   API keys.
+4. Write operations are bound to per-account API keys. Body/query `account`
+   values are ignored for authorization.
+5. Self-claiming is blocked so a requester cannot earn credits by completing
+   its own jobs.
+
+`test_e2e.py` includes checks for the core economic and safety properties. It
+uses malicious prompts that ask for file deletion or credential reads and
+verifies that the provider returns text rather than granting tool access.
+
+## Compliance boundaries
+
+This repository is intentionally conservative about terms-of-service risk:
+
+- Do not connect personal ChatGPT Pro, Codex, or program benefits as a shared
+  public compute provider.
+- Do not use OpenAI API credits from the Codex for Open Source program for
+  unrelated commercial workloads or third-party compute resale.
+- Do not submit repositories, codebases, systems, or security scans unless you
+  own them or have permission to review them.
+- Do not design deployments to bypass rate limits, identity checks, payment
+  requirements, or usage restrictions of any model provider.
+- For paid model providers, use a project-owned key or another key whose owner
+  has explicitly authorized the workload and redistribution model.
+- Public deployments should start new accounts with zero credits and require
+  contribution, maintainer approval, or another explicit grant before use.
+
+The prototype can route to several backends for development, but the recommended
+public/OSS-maintainer configuration is local compute first, plus approved
+project API keys for eligible maintainer automation.
+
+## Architecture
+
+```text
+requester.py              CLI/library for submitting jobs and reading balances
+provider.py               Worker daemon: claim -> execute -> submit result
+executor.py               Tool-less execution layer: echo / ollama / claude
+coordinator.py            Local Python coordinator with SQLite
+test_e2e.py               Local safety and economy tests
+config.example.json       Example local configuration
+
+vercel/                   Serverless production coordinator
+vercel/api/register.js    Per-account API key registration
+vercel/api/jobs/          Submit, claim, read, and complete jobs
+vercel/api/v1/            OpenAI-compatible chat endpoint
+vercel/lib/               Auth and Redis-backed credit/job store
+
+mcp/                      stdio MCP server for agent clients
+lolipop/                  Static discovery/manifest experiment
 ```
-coordinator.py   ジョブボード兼クレジット台帳（JSON API・HTMLなし＝機械優先）。SQLite 1ファイル。依存ゼロ。
-executor.py      ★provider側のtool-less実行層。echo / ollama / claude をプラガブルに切替。
-provider.py      余った枠を提供しクレジットを稼ぐデーモン。claim→execute→result。
-requester.py     プールを使う側。complete で1発同期実行（API的体験）。CLI兼ライブラリ。
-test_e2e.py      経済＋安全性のE2Eテスト。`python3 test_e2e.py`
-config.example.json  設定例。
-```
 
-## バックエンドと A/B の関係
+## Quick start: local coordinator
 
-`executor.py` のバックエンドを差し替えるだけで、安全な道とサブスク融通を同じプロトコルで両立:
-
-- `ollama` … ローカルモデル。認証情報リスクゼロ（自前ハード）。
-- `claude` … 自前の Anthropic APIキーで補完＝サブスク/クレジット融通（要望の A）。tool は渡さない。
-- `echo`  … LLM不要。テスト・構造証明用。
-
-## 使い方（ローカルで試す）
+Start the coordinator:
 
 ```bash
-# 1. コーディネータ起動
 python3 coordinator.py
+```
 
-# 2. provider 起動（別ターミナル。echo で動作確認）
+Start a safe echo provider in another terminal:
+
+```bash
 python3 provider.py --account alice --backend echo --model echo-model
+```
 
-# 3. requester から1発実行
+Submit a job:
+
+```bash
 python3 requester.py complete --account bob --model echo-model --prompt "hello"
+```
 
-# 残高確認
+Check a balance:
+
+```bash
 python3 requester.py balance --account bob
 ```
 
-ローカルモデルで実用する場合は provider を `--backend ollama --model qwen3:4b` 等で起動。
+For local model experiments, run the provider with an Ollama model:
 
-## クレジット経済
+```bash
+python3 provider.py --account alice --backend ollama --model qwen3:4b
+```
 
-- 新規アカウント初期付与: ローカル/信頼グループ=10、**公開デプロイ=0必須**（`COMPUTE_POOL_INITIAL_CREDITS=0`）
-- ジョブ投稿コスト: requester −1
-- ジョブ完了報酬: provider +1
-- 自分が投げたジョブは自分で処理できない（自己増殖防止）
+## Production-style deployment
 
-### Sybil（偽アカウント量産）対策
-
-自己申告の account ID に無料クレジットを配ると、偽アカ無限生成→claudeバックエンドの
-実費/枠を盗まれる。公開モード（初期0）では「先に provider として稼がないと使えない」
-構造になり、これが無効化される（検証済み）。
-※これは一次対策。完全な公開運用には **ID登録・評価(reputation)・レート制限** の追加実装が必要（未実装）。
-
-「単体でぐるぐる」回すこともできる: 暇な時にローカルGPU(ollama)で provider として貢献し、
-忙しい時にサブスク経由のジョブを requester として投げる ＝ **時間軸・資源種別をまたいだ自己裁定**。
-ただし自己claim防止のため、循環には別アカウントID（例: 自分のローカル用と消費用）が要る。
-
-## API化（受注側の使い勝手）
-
-現状の `requester.complete()` はクライアント側ポーリングで「1発で結果」を実現している。
-将来、coordinator の前に OpenAI 互換ゲートウェイ（`/v1/chat/completions`）を薄く被せれば、
-既存の OpenAI SDK / ツールからそのままプールを叩けるようになる（拡張予定）。
-
-## 公開デプロイ（Vercel + Lolipop）
-
-サーバレス構成: **Vercel = 動的コーディネータ（台帳・ジョブ）**、**Lolipop = AI向け静的案内板**。
-Vercel は stateless なので SQLite ではなく **Upstash Redis**（atomic な DECRBY/INCRBY/LPOP/RPUSH で
-double-spend / double-claim を防止）を使う。実体は `vercel/` 配下。
+The production prototype uses Vercel for API routes and Upstash Redis for the
+atomic job queue and credit ledger.
 
 ```bash
 cd vercel
 npm install
 vercel link --yes
-
-# Upstash Redis をプロビジョン（初回のみブラウザで規約承認が要る）
 vercel integration add upstash/upstash-kv
-#  → 規約未承認なら: vercel integration accept-terms upstash --yes（規約熟読の上）
-
-# 環境変数（本番）
-vercel env add COMPUTE_POOL_TOKEN production            # 共有Bearerトークン
-vercel env add COMPUTE_POOL_INITIAL_CREDITS production  # 公開は必ず 0
-vercel env add COMPUTE_POOL_CLAUDE_ALLOWLIST production # claude投稿を許す account をカンマ区切り
-
+vercel env add COMPUTE_POOL_INITIAL_CREDITS production
+vercel env add COMPUTE_POOL_CLAUDE_ALLOWLIST production
 vercel deploy --prod
-# /api/health で疎通確認。Python クライアントは --coordinator https://<prod>/api で従来通り動く。
 ```
 
-注: `lib/store.js` は Upstash の env を `UPSTASH_REDIS_REST_URL/TOKEN` と
-`KV_REST_API_URL/TOKEN` の両系統で受ける（marketplace 注入名のブレ対策）。
+For public deployments, set `COMPUTE_POOL_INITIAL_CREDITS=0`. This prevents
+newly registered accounts from immediately consuming paid or scarce compute.
 
-Lolipop 側（AI discovery manifest）は `lolipop/` を参照。`compute-pool.json` の
-`coordinator.base_url` を本番URLに置換して公開ディレクトリへ配置する。
+The serverless deployment accepts either Upstash Redis environment naming style:
+`UPSTASH_REDIS_REST_URL/TOKEN` or `KV_REST_API_URL/TOKEN`.
 
-## スコープ外（今後の強化・あえて先送り）
+## OpenAI-compatible gateway
 
-- **E2E暗号化**: 現状コーディネータはプロンプト・結果を平文で見られる。秘匿が要るなら後で暗号化層を追加。
-- **クレジット枯渇・濫用対策**: レート制限・手数料・評価（reputation）は未実装。
-- **registry/heartbeat**: provider の生存管理は未実装（claim ポーリングで代替）。
-- **デプロイ**: レンタルサーバ（PHP共有/Node/VPS）への載せ替えは未着手。許可を得てから。
+`vercel/api/v1/chat/completions.js` provides a minimal OpenAI-compatible
+endpoint. This lets existing SDK-based maintainer tools point at the pool while
+the coordinator handles queueing and provider selection.
 
-## TOS について（承知の上の選択）
+Example shape:
 
-claude バックエンドで自分のサブスク枠を他者ジョブに使うことは、各サービスの利用規約上
-グレーになりうる（アクセスの再提供）。オーナーはこのリスクを理解した上で A を選択。
-tool-less・ローカル既定の設計でリスクは最小化しているが、規約は各自で確認のこと。
+```bash
+curl "$COMPUTE_POOL_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $COMPUTE_POOL_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "echo-model",
+    "messages": [{"role": "user", "content": "Summarize this issue"}]
+  }'
+```
+
+## MCP server
+
+The MCP server in `mcp/` exposes the pool to agent clients:
+
+- `compute_complete(model, prompt)`
+- `compute_balance()`
+- `compute_submit(model, prompt)`
+- `compute_get(job_id)`
+- `compute_claim(model)`
+- `compute_submit_result(job_id, result)`
+
+See [mcp/README.md](mcp/README.md) for configuration.
+
+## Credit model
+
+The prototype uses a deliberately simple ledger:
+
+- Submitting a job costs the requester one credit.
+- Completing a job earns the provider one credit.
+- A requester cannot claim its own job.
+- Public deployments should grant zero initial credits.
+
+The ledger is not a cash system, token sale, or benefit exchange. It is an
+anti-spam and fairness mechanism for trusted maintainer groups.
+
+## Roadmap
+
+Near-term:
+
+- Register rate limiting to reduce storage spam.
+- Provider heartbeat and reputation.
+- End-to-end encryption for prompts and results.
+- Stronger project/admin grants for maintainer teams.
+- More complete OpenAI-compatible response metadata.
+
+Longer-term:
+
+- Maintainer-specific workflow templates for issue triage, PR review, release
+  preparation, and evaluation loops.
+- Better observability for queue health, model success rate, and cost control.
+- Safer provider policies for project-owned OpenAI API keys.
+
+## License
+
+License information has not been finalized yet. Add an explicit OSS license
+before encouraging external contributions.
