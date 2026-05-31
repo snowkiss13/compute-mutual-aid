@@ -53,6 +53,24 @@
 
 **将来オプション（需要が出たら）**: ①coordinator-assisted P2P（中央=discovery/ledger/auth、大payloadのみpeer直送） ②libp2p/QUIC。今は着手しない。
 
+## Phase 3: 公開ハードニング & 信頼 & DX（2026-05-31 設計）
+
+Phase2で「生きた系」に到達(発見自己完結・供給常駐可)。公開済ゆえ Phase3 は「安全に・信頼でき・参加しやすい公共財」へ。
+
+| # | 項目 | 目的 | 状態 |
+|---|------|------|------|
+| 3.1 | register rate-limit | 公開の /api/register を IP単位で制限。0-creditキー量産(storage spam)抑止 | 委譲予定(最優先) |
+| 3.2 | provider heartbeat + live models | providerが生存ping→discovery/manifestに「現在稼働中のmodel」を出す。requesterの504空振りを防ぐ | 設計済 |
+| 3.3 | stats/observability | GET /api/stats: queue深さ・登録数・稼働provider数。健全性可視化 | 設計済 |
+| 3.4 | reputation | provider成功率/遅延→claim優先度・信頼表示 | 構想 |
+| 3.5 | E2E暗号化(旧P6) | coordinatorにprompt/result平文を見せない | 後続 |
+
+**3.2 設計メモ**: provider claim時に `live:{model}:{account}` を SETEX(TTL~30s) で更新。discovery/stats は `live:*` を集計し models ごとの稼働provider数を返す。manifestの models.open に live フラグ or 別フィールド `live_models` を追加。requesterは投げる前に生存確認可。
+
+**3.1 設計メモ**: register は無認証ゆえ IP(x-forwarded-for)単位 fixed-window(例 10/hour) を rl-reg:{ip}:{hour} で。超過429。既存の RATE_LIMIT_SCRIPT 流用可。
+
+依存順: 3.1(安全・最優先) → 3.2(DX・504回避) → 3.3(可視化) → 3.4/3.5。
+
 ## 直列実装規約（Codexへ毎回明示）
 変更最小 / 関係ないファイル触らない / 不要依存追加しない / 既存挙動壊さない / 不確実点はリスク明記 / 差分要点3行で返す。
 
