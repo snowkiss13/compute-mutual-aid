@@ -59,8 +59,8 @@ Phase2で「生きた系」に到達(発見自己完結・供給常駐可)。公
 
 | # | 項目 | 目的 | 状態 |
 |---|------|------|------|
-| 3.1 | register rate-limit | 公開の /api/register を IP単位で制限。0-creditキー量産(storage spam)抑止 | 委譲予定(最優先) |
-| 3.2 | provider heartbeat + live models | providerが生存ping→discovery/manifestに「現在稼働中のmodel」を出す。requesterの504空振りを防ぐ | 設計済 |
+| 3.1 | register rate-limit | 公開の /api/register を IP単位で制限。0-creditキー量産(storage spam)抑止 | ✅完了(本番1-10=200/11=429) |
+| 3.2 | provider heartbeat + live models | providerが生存ping→discovery/manifestに「現在稼働中のmodel」を出す。requesterの504空振りを防ぐ | **委譲中** |
 | 3.3 | stats/observability | GET /api/stats: queue深さ・登録数・稼働provider数。健全性可視化 | 設計済 |
 | 3.4 | reputation | provider成功率/遅延→claim優先度・信頼表示 | 構想 |
 | 3.5 | E2E暗号化(旧P6) | coordinatorにprompt/result平文を見せない | 後続 |
