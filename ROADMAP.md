@@ -62,8 +62,8 @@ Phase2で「生きた系」に到達(発見自己完結・供給常駐可)。公
 | 3.1 | register rate-limit | 公開の /api/register を IP単位で制限。0-creditキー量産(storage spam)抑止 | ✅完了(本番1-10=200/11=429) |
 | 3.2 | provider heartbeat + live models | providerが生存ping→discovery/manifestに「現在稼働中のmodel」を出す。requesterの504空振りを防ぐ | ✅完了(本番: 起動3秒でlive表示・停止35秒で消滅) |
 | 3.3 | stats/observability | GET /api/stats: queue深さ・登録数・稼働provider数。健全性可視化 | ✅完了(本番200・registered_accounts反映) |
-| 3.4 | 信頼性+reputation | claimed後未完jobのrequeue/timeout + provider成功/失敗計数・信頼表示 | **委譲中** |
-| 3.5 | E2E暗号化(旧P6) | coordinatorにprompt/result平文を見せない | 後続 |
+| 3.4 | 信頼性+reputation | claimed後未完jobのrequeue/timeout + provider成功/失敗計数・信頼表示 | ✅完了(本番: 120s回収・rep done1/timeout1・二重report409・Lua原子性検証) |
+| 3.5 | E2E暗号化(旧P6) | coordinatorにprompt/result平文を見せない | **設計中** |
 
 **3.4 設計メモ(Copilot調査で判明したギャップ反映)**:
 - 現状: 成功時のみ `job:done`+provider credit。**claimed後未完のjobは永久にclaimed放置=失敗/timeout追跡なし**(Copilot 2026-05-31調査)。
