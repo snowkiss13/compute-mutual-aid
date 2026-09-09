@@ -279,6 +279,36 @@ launchctl list | grep compute-mutual-aid
 Use a lighter model by editing `COMPUTE_POOL_MODEL` in the plist, or by running
 the wrapper with `COMPUTE_POOL_MODEL=<ollama-tag>`.
 
+## Operations checklist
+
+Use the existing seed-provider wrapper and LaunchAgent described above; do not
+start a second provider manually while the LaunchAgent is already running.
+
+1. Before making a deployment public, verify the repository and deployment
+   visibility, review tracked files for secrets, and confirm that only authorized
+   backends are configured. Do not print provider keys or environment files.
+2. On the operator Mac, install the seed-provider LaunchAgent once, then inspect
+   its state with `launchctl list | grep compute-mutual-aid`. Check that Ollama
+   has the model configured in the plist. A loaded job alone does not prove that
+   a provider is serving requests.
+3. Set `COMPUTE_POOL_URL` to the intended coordinator and inspect the read-only
+   endpoints:
+
+   ```bash
+   curl --fail --silent --show-error "$COMPUTE_POOL_URL/api/discovery"
+   curl --fail --silent --show-error "$COMPUTE_POOL_URL/api/stats"
+   ```
+
+4. Confirm that `live_models` includes the intended model and that stats reports
+   live providers. Record the check time and queue counts without storing
+   credentials or user prompts.
+5. If the model is absent, inspect the existing provider process and its
+   configured logs before restarting it. Do not register replacement accounts or
+   grant credits merely to make a health check pass.
+
+These are operator checks, not evidence that any particular deployment has
+passed them. A visibility change or new paid backend remains a separate action.
+
 ## Credit model
 
 The prototype uses a deliberately simple ledger:
